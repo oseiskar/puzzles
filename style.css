@@ -1,0 +1,22 @@
+body {
+    margin: 0;
+}
+
+.svg-container {
+    width: 100%;
+    min-width: 800px;
+    height: 0;
+    padding-top: 43%; /* ~ 700 / 1600 */
+    position: relative;
+}
+
+#puzzle {
+    display: block;
+    top: 0;
+    left: 0;
+    position: absolute;
+}
+
+#puzzle text {
+    cursor: pointer;
+}
