@@ -35,7 +35,7 @@ PuzzleSolver.prototype.isInverseOf = function(move, prev_move) {
   return move.x === -prev_move.x && move.y === -prev_move.y;
 };
 
-PuzzleSolver.prototype.bruteForce = function(max_depth) {
+PuzzleSolver.prototype.bruteDFS = function(max_depth) {
   var solver = this;
   var min_heuristic = this.heuristic();
   var best_moves = [];
@@ -70,6 +70,46 @@ PuzzleSolver.prototype.bruteForce = function(max_depth) {
   return best_moves;
 };
 
+PuzzleSolver.prototype.IDAStar = function(depth_limit) {
+  var solver = this;
+
+  var min_heuristic = this.heuristic();
+  var best_moves = [];
+
+  function search(move_sequence, max_depth) {
+    var moves = solver.allMoves();
+    var depth = move_sequence.length;
+
+    var h = solver.heuristic();
+
+    if (h < min_heuristic) {
+      min_heuristic = h;
+      best_moves = move_sequence.slice();
+    }
+
+    if (h > max_depth-depth) return;
+
+    var prev_move = null;
+    if (depth > 0) prev_move = move_sequence[depth-1];
+
+    for (var i=0; i<moves.length; ++i) {
+      var move = moves[i];
+      if (solver.isInverseOf(move, prev_move)) continue;
+      solver.applyMove(move);
+      move_sequence.push(move);
+      search(move_sequence, max_depth);
+      solver.undoMove(move_sequence.pop());
+    }
+  }
+
+  for (var max_depth=0; max_depth <= depth_limit; ++max_depth) {
+    console.log(max_depth);
+    search([], max_depth);
+  }
+
+  return best_moves;
+};
+
 PuzzleSolver.prototype.solve = function() {
-  return this.bruteForce(8);
+  return this.IDAStar(14);
 };
