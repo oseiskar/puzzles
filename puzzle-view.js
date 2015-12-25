@@ -1,6 +1,8 @@
 "use strict";
 /*global d3:false */
 /*global PuzzleModel:false */
+/*global PuzzleSolver:false */
+/*global setTimeout:false */
 
 function PuzzleView() {
 
@@ -10,6 +12,7 @@ function PuzzleView() {
 
   var view = this;
   this.model = new PuzzleModel();
+  this.solver = new PuzzleSolver(this.model);
 
   this.d3root = d3.select('#puzzle')
     .attr('viewBox', '0 0 '+this.model.width+' '+this.model.height)
@@ -23,6 +26,10 @@ function PuzzleView() {
     .on('click', function() { view.onBoardClick(); });
 
   this.render();
+  setTimeout(function() {
+    var solution = view.solver.solve();
+    view.playSolution(solution);
+  }, 1000);
 }
 
 PuzzleView.prototype.render = function () {
@@ -37,9 +44,25 @@ PuzzleView.prototype.render = function () {
 
   this.renderPieces(new_pieces);
 
-  pieces.attr('transform', function(piece) {
-    return 'translate(' + piece.position.x + ',' + piece.position.y + ')';
-  });
+  pieces
+    .transition()
+    .attr('transform', function(piece) {
+      return 'translate(' + piece.position.x + ',' + piece.position.y + ')';
+    });
+};
+
+PuzzleView.prototype.playSolution = function(solution) {
+
+  if (solution.length === 0) return;
+  var move = solution.shift();
+
+  this.model.movePiece(move.piece, move.move.x, move.move.y);
+  this.render();
+
+  var that = this;
+  setTimeout(function() {
+    that.playSolution(solution);
+  }, 1000);
 };
 
 PuzzleView.prototype.onPieceClick = function (piece_group) {
