@@ -5,8 +5,20 @@ function PuzzleSolver(puzzle) {
 }
 
 PuzzleSolver.prototype.heuristic = function() {
-  var red_piece = this.model.pieces[0];
-  return red_piece.position.x + red_piece.position.y;
+  var min_moves = 0;
+  for (var i=0; i<this.model.pieces.length; ++i) {
+    var min_piece_dist = 0;
+    var piece = this.model.pieces[i];
+    for (var j=0; j<piece.final_positions.length; ++j) {
+      var target = piece.final_positions[j];
+      var dist = Math.abs(piece.position.x-target.x) +
+        Math.abs(piece.position.y-target.y);
+      if (j === 0 || dist < min_piece_dist)
+        min_piece_dist = dist;
+    }
+    min_moves += min_piece_dist;
+  }
+  return min_moves;
 };
 
 PuzzleSolver.prototype.allMoves = function() {
@@ -86,6 +98,7 @@ PuzzleSolver.prototype.IDAStar = function(depth_limit) {
       min_heuristic = h;
       best_moves = move_sequence.slice();
     }
+    if (min_heuristic === 0) return;
 
     if (h > max_depth-depth) return;
 
@@ -105,11 +118,13 @@ PuzzleSolver.prototype.IDAStar = function(depth_limit) {
   for (var max_depth=0; max_depth <= depth_limit; ++max_depth) {
     console.log(max_depth);
     search([], max_depth);
+    console.log(min_heuristic);
+    if (min_heuristic === 0) break;
   }
 
   return best_moves;
 };
 
 PuzzleSolver.prototype.solve = function() {
-  return this.IDAStar(14);
+  return this.IDAStar(34);
 };
