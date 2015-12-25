@@ -24,7 +24,7 @@ function PuzzleModel() {
       model.pieces.push(new Piece(id, shape, color, initial_positions[i]));
   }
 
-  definePiece([[0,0], [1,0], [0,1], [1,1]], 'red', [
+  definePiece([[0,0], [1,0], [1,1], [0,1]], 'red', [
     [4,3]
   ]);
   definePiece([[0,0]], 'blue', [

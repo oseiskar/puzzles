@@ -1,13 +1,29 @@
 body {
-    margin-top: 5%;
+    margin-top: 8%;
+    background: gray;
 }
 
 .svg-container {
     width: 100%;
 }
 
+.block-base {
+  fill: #996633;
+}
+
+.board {
+  fill: #604020;
+}
+
+circle {
+  stroke-width: 0.01;
+  stroke: black;
+  fill-opacity: 0.7;
+}
+
 #puzzle {
-    width: 800px;
+    width: 30%;
+    min-width: 500px;
     display: block;
     margin-left: auto;
     margin-right: auto;
