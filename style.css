@@ -15,6 +15,10 @@ body {
   fill: #604020;
 }
 
+.selected rect {
+  fill: #c07f3f;
+}
+
 circle {
   stroke-width: 0.01;
   stroke: black;
