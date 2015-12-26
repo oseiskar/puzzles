@@ -126,5 +126,5 @@ PuzzleSolver.prototype.IDAStar = function(depth_limit) {
 };
 
 PuzzleSolver.prototype.solve = function() {
-  return this.IDAStar(34);
+  return this.IDAStar(30);
 };

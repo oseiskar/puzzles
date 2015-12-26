@@ -77,6 +77,32 @@ function PuzzleModel() {
   };
 }
 
+PuzzleModel.prototype.moveSequence = function(move_seq) {
+  for (var i in move_seq) {
+    var move = move_seq[i];
+    this.movePiece(move.piece, move.move.x, move.move.y);
+  }
+};
+
+PuzzleModel.prototype.clone = function() {
+  var clone = new PuzzleModel();
+  var new_pieces = [];
+  for (var i=0; i<this.pieces.length; ++i) {
+    var piece = clone.pieces[i];
+    piece.position.x = this.pieces[i].position.x;
+    piece.position.y = this.pieces[i].position.y;
+    new_pieces.push(piece);
+  }
+  clone.pieces = new_pieces;
+  return clone;
+};
+
+PuzzleModel.prototype.selectSubset = function(filter_func) {
+  var clone = this.clone();
+  clone.pieces = clone.pieces.filter(filter_func);
+  return clone;
+};
+
 PuzzleModel.Board = function (puzzle_model) {
 
   function emptyBoard() {
