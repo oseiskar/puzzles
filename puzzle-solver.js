@@ -6,7 +6,7 @@ function PuzzleSolver(puzzle) {
 
   for (var i in puzzle.pieces) {
     var id = puzzle.pieces[i].id;
-    if (this.pieces_by_id[id] === undefined)
+    if (!this.pieces_by_id[id])
       this.pieces_by_id[id] = [];
 
     this.pieces_by_id[id].push(puzzle.pieces[i]);
@@ -74,7 +74,32 @@ PuzzleSolver.prototype.permutationHeuristic = function() {
   return min_moves;
 };
 
+PuzzleSolver.prototype.getSubproblem = function(filter_func) {
+  var puzzle_subset = this.model.selectSubset(filter_func);
+  return new PuzzleSolver(puzzle_subset);
+};
+
+PuzzleSolver.prototype.pieceIdSubproblem = function(piece_id) {
+  piece_id = parseInt(piece_id);
+  var subproblem = this.getSubproblem(function(piece) {
+    return piece.id === piece_id;
+  });
+  subproblem.heuristic = PuzzleSolver.prototype.permutationHeuristic;
+  return subproblem;
+};
+
+PuzzleSolver.prototype.subproblemHeuristic = function() {
+  var min_moves = 0;
+
+  for (var id in this.pieces_by_id) {
+    var subproblem = this.pieceIdSubproblem(id);
+    min_moves += subproblem.solve().length;
+  }
+  return min_moves;
+};
+
 PuzzleSolver.prototype.heuristic = PuzzleSolver.prototype.permutationHeuristic;
+//PuzzleSolver.prototype.heuristic = PuzzleSolver.prototype.subproblemHeuristic;
 
 PuzzleSolver.prototype.allMoves = function() {
   var moves = [];
@@ -171,9 +196,9 @@ PuzzleSolver.prototype.IDAStar = function(depth_limit) {
   }
 
   for (var max_depth=0; max_depth <= depth_limit; ++max_depth) {
-    console.log(max_depth);
+    //console.log(max_depth);
     search([], max_depth);
-    console.log(min_heuristic);
+    //console.log(min_heuristic);
     if (min_heuristic === 0) break;
   }
 
@@ -181,5 +206,5 @@ PuzzleSolver.prototype.IDAStar = function(depth_limit) {
 };
 
 PuzzleSolver.prototype.solve = function() {
-  return this.IDAStar(12);
+  return this.IDAStar(38);
 };

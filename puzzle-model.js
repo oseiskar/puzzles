@@ -11,22 +11,30 @@ function PuzzleModel() {
 
   function pairToXY(p) { return { x: p[0], y: p[1] }; }
 
-  function Piece(id, shape, color, initial_position) {
+  function Piece(id, shape, color, position, final_positions) {
     this.id = id;
-    this.shape = shape.map(pairToXY);
+    this.shape = shape;
     this.color = color;
-    this.position = {
-      x: initial_position[0],
-      y: initial_position[1]
+    this.final_positions = final_positions;
+    this.position = { // deep copy
+      x: position.x,
+      y: position.y
     };
   }
 
+  Piece.prototype.clone = function() {
+    return new Piece(this.id, this.shape, this.color,
+      this.position, this.final_positions);
+  };
+
   function definePiece(shape, color, initial_positions, final_positions) {
     var id = model.number_of_different_pieces++;
+    shape = shape.map(pairToXY);
     final_positions = final_positions.map(pairToXY);
+    initial_positions = initial_positions.map(pairToXY);
+
     for (var i in initial_positions) {
-      var piece = new Piece(id, shape, color, initial_positions[i]);
-      piece.final_positions = final_positions;
+      var piece = new Piece(id, shape, color, initial_positions[i], final_positions);
       model.pieces.push(piece);
     }
   }
@@ -87,14 +95,7 @@ PuzzleModel.prototype.moveSequence = function(move_seq) {
 
 PuzzleModel.prototype.clone = function() {
   var clone = new PuzzleModel();
-  var new_pieces = [];
-  for (var i=0; i<this.pieces.length; ++i) {
-    var piece = clone.pieces[i];
-    piece.position.x = this.pieces[i].position.x;
-    piece.position.y = this.pieces[i].position.y;
-    new_pieces.push(piece);
-  }
-  clone.pieces = new_pieces;
+  clone.pieces = this.pieces.map(function (p) { return p.clone(); });
   return clone;
 };
 

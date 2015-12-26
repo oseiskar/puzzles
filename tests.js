@@ -24,6 +24,17 @@ QUnit.test("clones", function( assert ) {
   clone.movePiece(clone.pieces[0], 0, 1);
 
   assert.ok(clone.pieces[0].position.y != puzzle.pieces[0].position.y);
+
+  var subset = puzzle.selectSubset(function (piece) {
+    return piece.color == 'blue';
+  });
+
+  var subset2 = subset.selectSubset(function (piece) {
+    return piece.color == 'blue';
+  });
+
+  assert.equal(subset.pieces.length, 6);
+  assert.equal(subset2.pieces.length, 6);
 });
 
 QUnit.test( "red partial solution", function( assert ) {
@@ -33,7 +44,7 @@ QUnit.test( "red partial solution", function( assert ) {
 
   assert.equal(red_piece.pieces.length, 1, 'red subset has one piece');
   var solver = new PuzzleSolver(red_piece);
-  assert.equal(solver.heuristic(), 7, 'initial heuristic heuristic');
+  assert.equal(solver.heuristic(), 7, 'initial heuristic');
 
   var solution = solver.solve();
   assert.equal(solution.length, 7, 'solution length');
@@ -42,21 +53,42 @@ QUnit.test( "red partial solution", function( assert ) {
   assert.equal(solver.heuristic(), 0, 'final solution has heuristic 0');
 });
 
-/*QUnit.test( "blue partial solution", function( assert ) {
+QUnit.test( "piece 1 partial solution", function( assert ) {
 
-  var blue = (new PuzzleModel()).selectSubset(function (piece) {
-    return piece.color == 'blue';
-  });
+  var subproblem = (new PuzzleSolver(new PuzzleModel())).pieceIdSubproblem(1);
+  assert.ok(subproblem.pieces_by_id[1].length, 6);
 
-  assert.equal(blue.pieces.length, 6, 'blue subset has 6 pieces');
-  var solver = new PuzzleSolver(blue);
-  assert.ok(solver.heuristic() > 0, 'initial heuristic > 0');
+  assert.ok(subproblem.heuristic() > 0, 'initial heuristic > 0');
+  var solution = subproblem.solve();
 
-  var solution = solver.solve();
+  subproblem.model.moveSequence(solution);
+  assert.equal(subproblem.heuristic(), 0, 'final solution has heuristic 0');
+});
 
-  blue.moveSequence(solution);
-  assert.equal(solver.heuristic(), 0, 'final solution has heuristic 0');
-});*/
+QUnit.test( "all partial color solutions", function( assert ) {
+
+  var colors = ['red', 'blue', 'yellow', 'white'];
+
+  function getSubset(color) {
+    return (new PuzzleModel()).selectSubset(function (piece) {
+      return piece.color === color;
+    });
+  }
+
+  for (var i in colors) {
+
+    var subset = getSubset(colors[i]);
+    assert.ok(subset.pieces.length > 0);
+
+    var solver = new PuzzleSolver(subset);
+    assert.ok(solver.heuristic() > 0, 'initial heuristic > 0');
+
+    var solution = solver.solve();
+
+    subset.moveSequence(solution);
+    assert.equal(solver.heuristic(), 0, 'final solution has heuristic 0');
+  }
+});
 
 
 QUnit.test( "permutations", function( assert ) {
