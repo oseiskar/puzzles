@@ -13,6 +13,8 @@ QUnit.test( "starting position", function( assert ) {
   assert.equal( solver.pieces_by_id[1].length, 6 );
   assert.equal( solver.pieces_by_id[1][0].color, 'blue' );
   assert.equal( solver.piece_permutations[1].length, 720 );
+  assert.equal( puzzle.pieces[0].positionIndex(), 3*6 + 4);
+  assert.equal( puzzle.pieces[0].bitmask(), 1 << (3*6 + 4));
 });
 
 QUnit.test("clones", function( assert ) {
@@ -21,8 +23,10 @@ QUnit.test("clones", function( assert ) {
   var clone = puzzle.clone();
 
   assert.deepEqual(clone.pieces[0].position, puzzle.pieces[0].position);
+  assert.deepEqual(puzzle.stateBitmasks(), clone.stateBitmasks());
   clone.movePiece(clone.pieces[0], 0, 1);
 
+  assert.ok(puzzle.stateBitmasks()[0] != clone.stateBitmasks()[0]);
   assert.ok(clone.pieces[0].position.y != puzzle.pieces[0].position.y);
 
   var subset = puzzle.selectSubset(function (piece) {

@@ -27,6 +27,14 @@ function PuzzleModel() {
       this.position, this.final_positions);
   };
 
+  Piece.prototype.positionIndex = function() {
+    return this.position.y * model.width + this.position.x;
+  };
+
+  Piece.prototype.bitmask = function() {
+    return 1 << this.positionIndex();
+  }
+
   function definePiece(shape, color, initial_positions, final_positions) {
     var id = model.number_of_different_pieces++;
     shape = shape.map(pairToXY);
@@ -85,6 +93,16 @@ function PuzzleModel() {
     piece.position.y += dy;
   };
 }
+
+PuzzleModel.prototype.stateBitmasks = function() {
+  var bitmasks = {};
+  for (var i in this.pieces) {
+    var piece = this.pieces[i];
+    if (!bitmasks[piece.id]) bitmasks[piece.id] = 0;
+    bitmasks[piece.id] = bitmasks[piece.id] | piece.bitmask();
+  }
+  return bitmasks;
+};
 
 PuzzleModel.prototype.moveSequence = function(move_seq) {
   for (var i in move_seq) {

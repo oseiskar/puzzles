@@ -98,8 +98,8 @@ PuzzleSolver.prototype.subproblemHeuristic = function() {
   return min_moves;
 };
 
-PuzzleSolver.prototype.heuristic = PuzzleSolver.prototype.permutationHeuristic;
-//PuzzleSolver.prototype.heuristic = PuzzleSolver.prototype.subproblemHeuristic;
+//PuzzleSolver.prototype.heuristic = PuzzleSolver.prototype.permutationHeuristic;
+PuzzleSolver.prototype.heuristic = PuzzleSolver.prototype.subproblemHeuristic;
 
 PuzzleSolver.prototype.allMoves = function() {
   var moves = [];
