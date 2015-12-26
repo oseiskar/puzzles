@@ -2,9 +2,39 @@
 
 function PuzzleSolver(puzzle) {
   this.model = puzzle;
+  this.pieces_by_id = {};
+
+  for (var i in puzzle.pieces) {
+    var id = puzzle.pieces[i].id;
+    if (this.pieces_by_id[id] === undefined)
+      this.pieces_by_id[id] = [];
+
+    this.pieces_by_id[id].push(puzzle.pieces[i]);
+  }
+
+  this.piece_permutations = {};
+  for (i in this.pieces_by_id) {
+    this.piece_permutations[i] =
+      PuzzleSolver.permutationsOf(this.pieces_by_id[i][0].final_positions);
+  }
 }
 
-PuzzleSolver.prototype.heuristic = function() {
+PuzzleSolver.permutationsOf = function (array) {
+  if (array.length <= 1) return [array.slice()];
+  var arrays = [];
+
+  for (var i=0; i<array.length; ++i) {
+    var rest = array.slice();
+    var first = rest.splice(i,1);
+    var sub = PuzzleSolver.permutationsOf(rest);
+    for (var j=0; j<sub.length; ++j) {
+      arrays.push(first.concat(sub[j]));
+    }
+  }
+  return arrays;
+};
+
+PuzzleSolver.prototype.minHeuristic = function() {
   var min_moves = 0;
   for (var i=0; i<this.model.pieces.length; ++i) {
     var min_piece_dist = 0;
@@ -20,6 +50,31 @@ PuzzleSolver.prototype.heuristic = function() {
   }
   return min_moves;
 };
+
+PuzzleSolver.prototype.permutationHeuristic = function() {
+  var min_moves = 0;
+
+  for (var id in this.piece_permutations) {
+    var min_piece_dists = 0;
+    for (var p=0; p<this.piece_permutations[id].length; ++p) {
+      var perm = this.piece_permutations[id][p];
+      var perm_dist = 0;
+      for (var j=0; j<perm.length; ++j) {
+        var piece = this.pieces_by_id[id][j];
+        var target = perm[j];
+        perm_dist += Math.abs(piece.position.x-target.x) +
+          Math.abs(piece.position.y-target.y);
+      }
+      if (p === 0 || perm_dist < min_piece_dists)
+        min_piece_dists = perm_dist;
+    }
+    min_moves += min_piece_dists;
+  }
+
+  return min_moves;
+};
+
+PuzzleSolver.prototype.heuristic = PuzzleSolver.prototype.permutationHeuristic;
 
 PuzzleSolver.prototype.allMoves = function() {
   var moves = [];
@@ -126,5 +181,5 @@ PuzzleSolver.prototype.IDAStar = function(depth_limit) {
 };
 
 PuzzleSolver.prototype.solve = function() {
-  return this.IDAStar(30);
+  return this.IDAStar(12);
 };

@@ -10,6 +10,9 @@ QUnit.test( "starting position", function( assert ) {
   assert.ok( solver.heuristic() > 0, "initial heuristic > 0" );
   assert.ok( solver.heuristic() > 20, "initial heuristic > 20" );
   assert.equal( solver.allMoves().length, 3, "3 possible starting moves" );
+  assert.equal( solver.pieces_by_id[1].length, 6 );
+  assert.equal( solver.pieces_by_id[1][0].color, 'blue' );
+  assert.equal( solver.piece_permutations[1].length, 720 );
 });
 
 QUnit.test("clones", function( assert ) {
@@ -54,3 +57,14 @@ QUnit.test( "red partial solution", function( assert ) {
   blue.moveSequence(solution);
   assert.equal(solver.heuristic(), 0, 'final solution has heuristic 0');
 });*/
+
+
+QUnit.test( "permutations", function( assert ) {
+  assert.deepEqual( PuzzleSolver.permutationsOf(['a','b']), [['a','b'],['b','a']] );
+
+  assert.deepEqual( PuzzleSolver.permutationsOf([1,2,3]), [
+    [1,2,3], [1,3,2], [2,1,3], [2,3,1], [3,1,2], [3,2,1]
+  ]);
+
+  assert.equal( PuzzleSolver.permutationsOf([1,2,3,4,5,6]).length, 720);
+});

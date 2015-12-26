@@ -7,6 +7,7 @@ function PuzzleModel() {
   this.height = 5;
 
   this.pieces = [];
+  this.number_of_different_pieces = 0;
 
   function pairToXY(p) { return { x: p[0], y: p[1] }; }
 
@@ -21,7 +22,7 @@ function PuzzleModel() {
   }
 
   function definePiece(shape, color, initial_positions, final_positions) {
-    var id = model.pieces.length;
+    var id = model.number_of_different_pieces++;
     final_positions = final_positions.map(pairToXY);
     for (var i in initial_positions) {
       var piece = new Piece(id, shape, color, initial_positions[i]);
