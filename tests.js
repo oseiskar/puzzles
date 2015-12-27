@@ -94,7 +94,6 @@ QUnit.test( "all partial color solutions", function( assert ) {
   }
 });
 
-
 QUnit.test( "permutations", function( assert ) {
   assert.deepEqual( PuzzleSolver.permutationsOf(['a','b']), [['a','b'],['b','a']] );
 

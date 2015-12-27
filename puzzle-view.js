@@ -12,7 +12,7 @@ function PuzzleView() {
 
   var view = this;
   this.model = new PuzzleModel();
-  //this.model = this.model.selectSubset(function(p){return p.color=='blue';});
+  //this.model = this.model.selectSubset(function(p){return p.color=='white'||p.color=='yellow';});
   this.solver = new PuzzleSolver(this.model);
 
   this.d3root = d3.select('#puzzle')
