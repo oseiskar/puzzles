@@ -106,6 +106,16 @@ PuzzleModel.prototype.stateBitmasks = function() {
   return bitmasks;
 };
 
+PuzzleModel.prototype.stateString = function() {
+  var bitmasks = this.stateBitmasks();
+  var str = '';
+  for (var i=0; i<this.pieces.length; ++i)
+    if (i in bitmasks) {
+      str = str + i + '(' + bitmasks[i] + ')';
+    }
+  return str;
+};
+
 PuzzleModel.prototype.moveSequence = function(move_seq) {
   for (var i in move_seq) {
     var move = move_seq[i];

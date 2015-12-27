@@ -24,10 +24,12 @@ QUnit.test("clones", function( assert ) {
 
   assert.deepEqual(clone.pieces[0].position, puzzle.pieces[0].position);
   assert.deepEqual(puzzle.stateBitmasks(), clone.stateBitmasks());
+  assert.equal(puzzle.stateString(), clone.stateString());
   clone.movePiece(clone.pieces[0], 0, 1);
 
   assert.ok(puzzle.stateBitmasks()[0] != clone.stateBitmasks()[0]);
   assert.ok(clone.pieces[0].position.y != puzzle.pieces[0].position.y);
+  assert.ok(puzzle.stateString() != clone.stateString());
 
   var subset = puzzle.selectSubset(function (piece) {
     return piece.color == 'blue';

@@ -211,6 +211,57 @@ PuzzleSolver.prototype.bruteDFS = function(max_depth) {
   return best_moves;
 };
 
+PuzzleSolver.prototype.reconstructPath = function(path) {
+    var new_path = [];
+    for (var i=0; i<path.length; ++i)
+      new_path.push({
+        piece: this.model.pieces[path[i].piece.index],
+        move: path[i].move
+      });
+    return new_path;
+};
+
+PuzzleSolver.prototype.dijkstra = function() {
+
+  var max_frontier_size = 10000;
+
+  var frontier = [this.model];
+  var shortest_paths = {};
+  shortest_paths[this.model.stateString()] = [];
+
+  while (frontier.length > 0) {
+    var node = frontier.shift();
+    var node_id = node.stateString();
+    var path = shortest_paths[node_id];
+
+    if (frontier.length > max_frontier_size)
+      throw "max frontier size exceeded";
+
+    PuzzleSolver.applyEvaluationLimit();
+
+    var solver = new PuzzleSolver(node);
+
+    if (solver.minHeuristic() === 0)
+      return this.reconstructPath(path);
+
+    var moves = solver.allMoves();
+    for (var i in moves) {
+      var move = moves[i];
+      solver.applyMove(move);
+      var next_node_id = node.stateString();
+      if (!(next_node_id in shortest_paths)) {
+        shortest_paths[next_node_id] = path.concat([move]);
+        frontier.push(node.clone());
+      } else if (shortest_paths[next_node_id].length > path.length+1) {
+        shortest_paths[next_node_id] = path.concat([move]);
+      }
+      solver.undoMove(move);
+    }
+  }
+
+  throw "goal not found";
+};
+
 PuzzleSolver.prototype.IDAStar = function(depth_limit) {
   var solver = this;
 
@@ -258,5 +309,5 @@ PuzzleSolver.prototype.IDAStar = function(depth_limit) {
 };
 
 PuzzleSolver.prototype.solve = function() {
-  return this.IDAStar(40);
+  return this.dijkstra();
 };
