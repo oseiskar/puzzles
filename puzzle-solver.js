@@ -1,12 +1,17 @@
 "use strict";
+/*global FibonacciHeap:false */
 
-function PuzzleSolver(puzzle) {
+function PuzzleSolver(puzzle, parent) {
   this.model = puzzle;
   this.pieces_by_id = {};
   this.subproblem_map = {};
 
   this.cache_queries = 0;
   this.cache_misses = 0;
+
+  if (parent) {
+    this.subproblem_map = parent.subproblem_map;
+  }
 
   for (var i in puzzle.pieces) {
     var id = puzzle.pieces[i].id;
@@ -43,7 +48,7 @@ PuzzleSolver.permutationsOf = function (array) {
 PuzzleSolver.applyEvaluationLimit = (function(){
 
     var n_evaluations = 0;
-    var max_evaluations = 30000;
+    var max_evaluations = 1000000;
 
     return (function() {
       n_evaluations++;
@@ -96,9 +101,7 @@ PuzzleSolver.prototype.permutationHeuristic = function() {
 
 PuzzleSolver.prototype.getSubproblem = function(filter_func) {
   var puzzle_subset = this.model.selectSubset(filter_func);
-  var solver = new PuzzleSolver(puzzle_subset);
-  solver.subproblem_map = this.subproblem_map;
-  return solver;
+  return new PuzzleSolver(puzzle_subset, this);
 };
 
 PuzzleSolver.prototype.pieceIdSubproblem = function(piece_id) {
@@ -122,7 +125,7 @@ PuzzleSolver.prototype.pieceIdSubproblemSolutionLength = function(piece_id) {
   if (!(piece_bitmask in bitmasks)) {
     var subproblem = this.pieceIdSubproblem(piece_id);
     this.cache_misses++;
-    bitmasks[piece_bitmask] = subproblem.solve().length;
+    bitmasks[piece_bitmask] = subproblem.IDAStar().length;
   }
   return bitmasks[piece_bitmask];
 };
@@ -143,12 +146,13 @@ PuzzleSolver.prototype.noBlueHeuristic = function() {
     return piece.id !== blue_id;
   });
   no_blue_solver.heuristic = PuzzleSolver.prototype.subproblemHeuristic;
-  return blue + no_blue_solver.solve().length;
+  return blue + no_blue_solver.IDAStar().length;
 };
 
-//PuzzleSolver.prototype.heuristic = PuzzleSolver.prototype.permutationHeuristic;
+//PuzzleSolver.prototype.heuristic = PuzzleSolver.prototype.minHeuristic;
+PuzzleSolver.prototype.heuristic = PuzzleSolver.prototype.permutationHeuristic;
 //PuzzleSolver.prototype.heuristic = PuzzleSolver.prototype.subproblemHeuristic;
-PuzzleSolver.prototype.heuristic = PuzzleSolver.prototype.noBlueHeuristic;
+//PuzzleSolver.prototype.heuristic = PuzzleSolver.prototype.noBlueHeuristic;
 
 PuzzleSolver.prototype.allMoves = function() {
   var moves = [];
@@ -213,9 +217,13 @@ PuzzleSolver.prototype.bruteDFS = function(max_depth) {
 
 PuzzleSolver.prototype.reconstructPath = function(path) {
     var new_path = [];
-    for (var i=0; i<path.length; ++i)
+    var pieces_by_index = {};
+    for (var i=0; i<this.model.pieces.length; ++i) {
+      pieces_by_index[this.model.pieces[i].index] = this.model.pieces[i];
+    }
+    for (i=0; i<path.length; ++i)
       new_path.push({
-        piece: this.model.pieces[path[i].piece.index],
+        piece: pieces_by_index[path[i].piece.index],
         move: path[i].move
       });
     return new_path;
@@ -262,6 +270,53 @@ PuzzleSolver.prototype.dijkstra = function() {
   throw "goal not found";
 };
 
+PuzzleSolver.prototype.AStar = function() {
+
+  var begin_node = this.model;
+  var frontier = new FibonacciHeap();
+  frontier.insert(0, begin_node);
+  var heap_nodes = {};
+
+  var shortest_paths = {};
+  shortest_paths[begin_node.stateString()] = [];
+
+  while (!frontier.isEmpty()) {
+    var node = frontier.extractMinimum().value;
+    var node_id = node.stateString();
+    var path = shortest_paths[node_id];
+
+    PuzzleSolver.applyEvaluationLimit();
+
+    var solver = new PuzzleSolver(node, this);
+
+    if (solver.minHeuristic() === 0)
+      return this.reconstructPath(path);
+
+    var moves = solver.allMoves();
+
+    for (var i in moves) {
+      var move = moves[i];
+      solver.applyMove(move);
+      var next_node_id = node.stateString();
+
+      var h = path.length + 1;
+
+      if (!(next_node_id in shortest_paths)) {
+        h += solver.heuristic();
+        shortest_paths[next_node_id] = path.concat([move]);
+        heap_nodes[next_node_id] = frontier.insert(h, node.clone());
+      } else if (shortest_paths[next_node_id].length > path.length+1) {
+        h += solver.heuristic();
+        frontier.decreaseKey(heap_nodes[next_node_id], h);
+        shortest_paths[next_node_id] = path.concat([move]);
+      }
+      solver.undoMove(move);
+    }
+  }
+
+  throw "goal not found";
+};
+
 PuzzleSolver.prototype.IDAStar = function(depth_limit) {
   var solver = this;
 
@@ -295,7 +350,7 @@ PuzzleSolver.prototype.IDAStar = function(depth_limit) {
     }
   }
 
-  for (var max_depth=0; max_depth <= depth_limit; ++max_depth) {
+  for (var max_depth=0; !depth_limit || max_depth <= depth_limit; ++max_depth) {
     search([], max_depth);
     if (this.heuristic === PuzzleSolver.prototype.heuristic) {
       console.log(max_depth + " -> " + min_heuristic + ", "
@@ -309,5 +364,5 @@ PuzzleSolver.prototype.IDAStar = function(depth_limit) {
 };
 
 PuzzleSolver.prototype.solve = function() {
-  return this.dijkstra();
+  return this.AStar();
 };

@@ -7,7 +7,7 @@ function PuzzleModel() {
   this.height = 5;
 
   this.pieces = [];
-  this.number_of_different_pieces = 0;
+  this.max_id = 0;
 
   function pairToXY(p) { return { x: p[0], y: p[1] }; }
 
@@ -37,7 +37,7 @@ function PuzzleModel() {
   };
 
   function definePiece(shape, color, initial_positions, final_positions) {
-    var id = model.number_of_different_pieces++;
+    var id = model.max_id++;
     shape = shape.map(pairToXY);
     final_positions = final_positions.map(pairToXY);
     initial_positions = initial_positions.map(pairToXY);
@@ -109,7 +109,7 @@ PuzzleModel.prototype.stateBitmasks = function() {
 PuzzleModel.prototype.stateString = function() {
   var bitmasks = this.stateBitmasks();
   var str = '';
-  for (var i=0; i<this.pieces.length; ++i)
+  for (var i=0; i<this.max_id; ++i)
     if (i in bitmasks) {
       str = str + i + '(' + bitmasks[i] + ')';
     }
