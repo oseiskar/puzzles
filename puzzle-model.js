@@ -11,8 +11,9 @@ function PuzzleModel() {
 
   function pairToXY(p) { return { x: p[0], y: p[1] }; }
 
-  function Piece(id, shape, color, position, final_positions) {
+  function Piece(id, index, shape, color, position, final_positions) {
     this.id = id;
+    this.index = index;
     this.shape = shape;
     this.color = color;
     this.final_positions = final_positions;
@@ -23,7 +24,7 @@ function PuzzleModel() {
   }
 
   Piece.prototype.clone = function() {
-    return new Piece(this.id, this.shape, this.color,
+    return new Piece(this.id, this.index, this.shape, this.color,
       this.position, this.final_positions);
   };
 
@@ -33,7 +34,7 @@ function PuzzleModel() {
 
   Piece.prototype.bitmask = function() {
     return 1 << this.positionIndex();
-  }
+  };
 
   function definePiece(shape, color, initial_positions, final_positions) {
     var id = model.number_of_different_pieces++;
@@ -42,7 +43,8 @@ function PuzzleModel() {
     initial_positions = initial_positions.map(pairToXY);
 
     for (var i in initial_positions) {
-      var piece = new Piece(id, shape, color, initial_positions[i], final_positions);
+      var piece = new Piece(id, model.pieces.length, shape, color,
+        initial_positions[i], final_positions);
       model.pieces.push(piece);
     }
   }

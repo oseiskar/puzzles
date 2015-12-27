@@ -54,8 +54,6 @@ PuzzleSolver.applyEvaluationLimit = (function(){
 })();
 
 PuzzleSolver.prototype.minHeuristic = function() {
-
-  PuzzleSolver.applyEvaluationLimit();
   var min_moves = 0;
 
   for (var i=0; i<this.model.pieces.length; ++i) {
@@ -74,8 +72,6 @@ PuzzleSolver.prototype.minHeuristic = function() {
 };
 
 PuzzleSolver.prototype.permutationHeuristic = function() {
-
-  PuzzleSolver.applyEvaluationLimit();
   var min_moves = 0;
 
   for (var id in this.piece_permutations) {
@@ -83,7 +79,7 @@ PuzzleSolver.prototype.permutationHeuristic = function() {
     for (var p=0; p<this.piece_permutations[id].length; ++p) {
       var perm = this.piece_permutations[id][p];
       var perm_dist = 0;
-      for (var j=0; j<perm.length; ++j) {
+      for (var j=0; j<perm.length && j<this.pieces_by_id[id].length; ++j) {
         var piece = this.pieces_by_id[id][j];
         var target = perm[j];
         perm_dist += Math.abs(piece.position.x-target.x) +
@@ -115,13 +111,16 @@ PuzzleSolver.prototype.pieceIdSubproblem = function(piece_id) {
 };
 
 PuzzleSolver.prototype.pieceIdSubproblemSolutionLength = function(piece_id) {
-  var subproblem = this.pieceIdSubproblem(piece_id);
+
+  if (!(piece_id in this.subproblem_map)) return 0;
+
   var bitmasks = this.subproblem_map[piece_id];
-  var piece_bitmask = subproblem.model.stateBitmasks()[piece_id];
+  var piece_bitmask = this.model.stateBitmasks()[piece_id];
 
   this.cache_queries++;
 
   if (!(piece_bitmask in bitmasks)) {
+    var subproblem = this.pieceIdSubproblem(piece_id);
     this.cache_misses++;
     bitmasks[piece_bitmask] = subproblem.solve().length;
   }
@@ -129,8 +128,6 @@ PuzzleSolver.prototype.pieceIdSubproblemSolutionLength = function(piece_id) {
 };
 
 PuzzleSolver.prototype.subproblemHeuristic = function() {
-
-  PuzzleSolver.applyEvaluationLimit();
   var min_moves = 0;
 
   for (var id in this.pieces_by_id) {
@@ -139,8 +136,19 @@ PuzzleSolver.prototype.subproblemHeuristic = function() {
   return min_moves;
 };
 
+PuzzleSolver.prototype.noBlueHeuristic = function() {
+  var blue_id = 1;
+  var blue = this.pieceIdSubproblemSolutionLength(blue_id);
+  var no_blue_solver = this.getSubproblem(function(piece) {
+    return piece.id !== blue_id;
+  });
+  no_blue_solver.heuristic = PuzzleSolver.prototype.subproblemHeuristic;
+  return blue + no_blue_solver.solve().length;
+};
+
 //PuzzleSolver.prototype.heuristic = PuzzleSolver.prototype.permutationHeuristic;
-PuzzleSolver.prototype.heuristic = PuzzleSolver.prototype.subproblemHeuristic;
+//PuzzleSolver.prototype.heuristic = PuzzleSolver.prototype.subproblemHeuristic;
+PuzzleSolver.prototype.heuristic = PuzzleSolver.prototype.noBlueHeuristic;
 
 PuzzleSolver.prototype.allMoves = function() {
   var moves = [];
@@ -214,6 +222,7 @@ PuzzleSolver.prototype.IDAStar = function(depth_limit) {
     var depth = move_sequence.length;
 
     var h = solver.heuristic();
+    PuzzleSolver.applyEvaluationLimit();
 
     if (h < min_heuristic) {
       min_heuristic = h;
@@ -249,5 +258,5 @@ PuzzleSolver.prototype.IDAStar = function(depth_limit) {
 };
 
 PuzzleSolver.prototype.solve = function() {
-  return this.IDAStar(35);
+  return this.IDAStar(40);
 };
