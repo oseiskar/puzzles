@@ -4,29 +4,27 @@
 function PuzzleSolver(puzzle, parent) {
   this.model = puzzle;
   this.pieces_by_id = {};
-  this.subproblem_map = {};
 
   this.cache_queries = 0;
   this.cache_misses = 0;
-
-  if (parent) {
-    this.subproblem_map = parent.subproblem_map;
-  }
 
   for (var i in puzzle.pieces) {
     var id = puzzle.pieces[i].id;
     if (!this.pieces_by_id[id]) {
       this.pieces_by_id[id] = [];
-      this.subproblem_map[id] = {};
     }
-
     this.pieces_by_id[id].push(puzzle.pieces[i]);
   }
 
-  this.piece_permutations = {};
-  for (i in this.pieces_by_id) {
-    this.piece_permutations[i] =
-      PuzzleSolver.permutationsOf(this.pieces_by_id[i][0].final_positions);
+  if (parent) {
+    this.piece_permutations = parent.piece_permutations;
+  }
+  else {
+    this.piece_permutations = {};
+    for (i in this.pieces_by_id) {
+      this.piece_permutations[i] =
+        PuzzleSolver.permutationsOf(this.pieces_by_id[i][0].final_positions);
+    }
   }
 }
 
@@ -103,23 +101,15 @@ PuzzleSolver.prototype.permutationHeuristic = function() {
 PuzzleSolver.prototype.heuristic = PuzzleSolver.prototype.permutationHeuristic;
 
 PuzzleSolver.prototype.allMoves = function() {
-  var moves = [];
-  for (var i=0; i<this.model.pieces.length; ++i) {
-    var piece = this.model.pieces[i];
-    var cur_piece_moves = this.model.getMoves(piece);
-    for (var j=0; j<cur_piece_moves.length; ++j) {
-      moves.push({piece: piece, move: cur_piece_moves[j]});
-    }
-  }
-  return moves;
+  return this.model.getAllMoves();
 };
 
 PuzzleSolver.prototype.applyMove = function(move) {
-  this.model.movePiece(move.piece, move.move.x, move.move.y);
+  this.model.movePieceUnchecked(move.piece, move.move.x, move.move.y);
 };
 
 PuzzleSolver.prototype.undoMove = function(move) {
-  this.model.movePiece(move.piece, -move.move.x, -move.move.y);
+  this.model.movePieceUnchecked(move.piece, -move.move.x, -move.move.y);
 };
 
 PuzzleSolver.prototype.isInverseOf = function(move, prev_move) {

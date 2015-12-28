@@ -85,14 +85,22 @@ function PuzzleModel() {
     return board.getMoves(piece);
   };
 
+  this.getAllMoves = function(piece) {
+    return board.getAllMoves(piece);
+  };
+
   this.canMove = function(piece) {
     return this.getMoves(piece).length > 0;
   };
 
-  this.movePiece = function(piece, dx, dy) {
-    if (!board.canMove(piece,dx,dy)) throw("Illegal move");
+  this.movePieceUnchecked = function(piece, dx, dy) {
     piece.position.x += dx;
     piece.position.y += dy;
+  };
+
+  this.movePiece = function(piece, dx, dy) {
+    if (!board.canMove(piece,dx,dy)) throw("Illegal move");
+    model.movePieceUnchecked(piece,dx,dy);
   };
 }
 
@@ -137,34 +145,41 @@ PuzzleModel.prototype.selectSubset = function(filter_func) {
 
 PuzzleModel.Board = function (puzzle_model) {
 
-  function emptyBoard() {
-    var board = [];
+  var board = PuzzleModel.Board.board;
+  if (!board) {
+    board = [];
     for (var i=0; i<puzzle_model.width*puzzle_model.height; ++i)
       board.push(null);
-    return board;
+    PuzzleModel.Board.board = board;
   }
 
-  function placeBlock(board, x, y, piece) {
+  function emptyBoard() {
+    for (var j in PuzzleModel.Board.board)
+      PuzzleModel.Board.board[j] = null;
+    return PuzzleModel.Board.board;
+  }
+
+  function placeBlock(x, y, piece) {
     board[puzzle_model.width*y + x] = piece;
   }
 
-  function getBlock(board, x, y, piece) {
+  function getBlock(x, y, piece) {
     return board[puzzle_model.width*y + x];
   }
 
-  function placePiece(board, piece) {
+  function placePiece(piece) {
     for (var i in piece.shape) {
       var x = piece.position.x + piece.shape[i].x;
       var y = piece.position.y + piece.shape[i].y;
-      placeBlock(board,x,y,piece);
+      placeBlock(x,y,piece);
     }
   }
 
-  function canPlace(board, piece, dx, dy) {
+  function canPlace(piece, dx, dy) {
     for (var i in piece.shape) {
       var x = piece.position.x + piece.shape[i].x + dx;
       var y = piece.position.y + piece.shape[i].y + dy;
-      var block = getBlock(board,x,y);
+      var block = getBlock(x,y);
       if (x < 0 || x >= puzzle_model.width) return false;
       if (y < 0 || y >= puzzle_model.height) return false;
       if (block !== null && block !== piece) return false;
@@ -173,28 +188,47 @@ PuzzleModel.Board = function (puzzle_model) {
   }
 
   function fillBoard() {
-    var board = emptyBoard();
+    emptyBoard();
     for (var i in puzzle_model.pieces) {
-      placePiece(board, puzzle_model.pieces[i]);
+      placePiece(puzzle_model.pieces[i]);
     }
-    return board;
   }
 
-  this.getMoves = function(piece) {
-    var board = fillBoard();
+  function getMovesUnfilled(piece) {
     var moves = [];
     for (var dx=-1; dx<=1; dx++) {
       for (var dy=-1; dy<=1; dy++) {
-        if (Math.abs(dx)+Math.abs(dy) === 1 && canPlace(board, piece, dx, dy)) {
+        if (Math.abs(dx)+Math.abs(dy) === 1 && canPlace(piece, dx, dy)) {
           moves.push({x: dx, y: dy});
         }
+      }
+    }
+    return moves;
+  }
+
+  this.getMoves = function(piece) {
+    fillBoard();
+    return getMovesUnfilled(piece);
+  };
+
+  this.getAllMoves = function() {
+    fillBoard();
+    var moves = [];
+    for (var i in puzzle_model.pieces) {
+      var piece = puzzle_model.pieces[i];
+      var cur_moves = getMovesUnfilled(piece);
+      for (var j in cur_moves) {
+        moves.push({
+          piece: piece,
+          move: cur_moves[j]
+        });
       }
     }
     return moves;
   };
 
   this.canMove = function(piece, dx, dy) {
-    var board = fillBoard();
-    return canPlace(board, piece, dx, dy);
+    fillBoard();
+    return canPlace(piece, dx, dy);
   };
 };
