@@ -8,8 +8,18 @@
 </head>
 <body>
 <div class="svg-container">
-<svg id="puzzle" preserveAspectRatio="xMinYMin meet">
-</svg>
+  <svg id="puzzle" preserveAspectRatio="xMinYMin meet">
+  </svg>
+  <div class="bar">
+    <a href="javascript:void(0)" id="solve">Solve!</a>
+    <div id="solution-controls" class="hidden">
+      <a href="javascript:void(0)" id="prev">&lt;</a>
+      <span id="step-counter"></span>
+      <a href="javascript:void(0)" id="next">&gt;</a>
+      <a href="javascript:void(0)" id="play">Play</a>
+      <a href="javascript:void(0)" id="stop" class="hidden">Stop</a>
+    </div>
+  </div>
 </div>
 </body>
 <script src="puzzle-model.js"></script>

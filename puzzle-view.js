@@ -12,9 +12,6 @@ function PuzzleView() {
 
   var view = this;
   this.model = new PuzzleModel();
-  /*this.model = this.model.selectSubset(function(p){
-    return p.color=='blue' || p.color=='yellow';
-  });*/
   this.solver = new PuzzleSolver(this.model);
 
   this.d3root = d3.select('#puzzle')
@@ -29,11 +26,95 @@ function PuzzleView() {
     .on('click', function() { view.onBoardClick(); });
 
   this.render();
-  setTimeout(function() {
-    var solution = view.solver.solve();
-    view.playSolution(solution);
-  }, 1000);
+
+  this.solution_view = new SolutionView(this);
 }
+
+function SolutionView(puzzle_view) {
+
+  var solution_view = this;
+  this.puzzle_view = puzzle_view;
+
+  this.solution_controls = d3.select('#solution-controls');
+
+  this.buttons = {};
+  var actions = ['solve', 'play', 'stop', 'next', 'prev'];
+  function makeAction(action) {
+    return (function() {
+      solution_view[action]();
+      solution_view.render();
+    });
+  }
+
+  for (var i in actions) {
+    var action = actions[i];
+    this.buttons[action] = d3.select('#'+action);
+    this.buttons[action].on('click', makeAction(action));
+  }
+
+  this.clear();
+}
+
+SolutionView.prototype.setSolution = function(solution) {
+  this.solution = solution;
+  this.buttons.solve.classed('hidden', true);
+  this.solution_controls.classed('hidden', false);
+};
+
+SolutionView.prototype.clear = function(solution) {
+  this.solution = null;
+  this.solution_index = 0;
+  this.playing = false;
+
+  this.buttons.solve.classed('hidden', false);
+  this.solution_controls.classed('hidden', true);
+};
+
+SolutionView.prototype.solve = function() {
+  var solution = this.puzzle_view.solver.solve();
+  this.setSolution(solution);
+};
+
+SolutionView.prototype.next = function(solution) {
+  if (this.solution_index >= this.solution.length) return;
+  var move = this.solution[this.solution_index++];
+  this.puzzle_view.movePiece(move.piece, move.move.x, move.move.y);
+  this.puzzle_view.render();
+
+  if (this.playing) {
+    this.render();
+    var that = this;
+    setTimeout(function() { that.next(); }, 1000);
+  }
+};
+
+SolutionView.prototype.prev = function(solution) {
+  if (this.solution_index === 0) return;
+  this.solution_index--;
+  var move = this.solution[this.solution_index];
+  this.puzzle_view.movePiece(move.piece, -move.move.x, -move.move.y);
+  this.puzzle_view.render();
+};
+
+SolutionView.prototype.play = function(solution) {
+  if (this.solution_index >= this.solution.length) return this.stop();
+  this.playing = true;
+  this.next();
+};
+
+SolutionView.prototype.render = function() {
+  this.solution_controls.select('#step-counter').text(
+    (this.solution_index+1) + ' / ' + this.solution.length
+  );
+  this.buttons.play.classed('hidden', this.playing);
+  this.buttons.next.classed('hidden', this.playing);
+  this.buttons.prev.classed('hidden', this.playing);
+  this.buttons.stop.classed('hidden', !this.playing);
+};
+
+SolutionView.prototype.stop = function(solution) {
+  this.playing = false;
+};
 
 PuzzleView.prototype.render = function () {
 
@@ -52,20 +133,6 @@ PuzzleView.prototype.render = function () {
     .attr('transform', function(piece) {
       return 'translate(' + piece.position.x + ',' + piece.position.y + ')';
     });
-};
-
-PuzzleView.prototype.playSolution = function(solution) {
-
-  if (solution.length === 0) return;
-  var move = solution.shift();
-
-  this.model.movePiece(move.piece, move.move.x, move.move.y);
-  this.render();
-
-  var that = this;
-  setTimeout(function() {
-    that.playSolution(solution);
-  }, 1000);
 };
 
 PuzzleView.prototype.onPieceClick = function (piece_group) {
@@ -93,7 +160,12 @@ PuzzleView.prototype.onBoardClick = function () {
 
   this.prev_move = move;
 
-  this.model.movePiece(this.selected_piece, move.x, move.y);
+  this.solution_view.clear();
+  this.movePiece(this.selected_piece, move.x, move.y);
+};
+
+PuzzleView.prototype.movePiece = function(piece, x, y) {
+  this.model.movePiece(piece, x, y);
   this.render();
 };
 

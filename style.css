@@ -1,6 +1,11 @@
 body {
     margin-top: 8%;
     background: gray;
+    font-family: Helvetica, sans-serif;
+}
+
+.hidden {
+    display: none;
 }
 
 .svg-container {
@@ -25,7 +30,7 @@ circle {
   fill-opacity: 0.7;
 }
 
-#puzzle {
+#puzzle, .bar {
     width: 30%;
     min-width: 500px;
     display: block;
@@ -35,4 +40,23 @@ circle {
 
 #puzzle text {
     cursor: pointer;
+}
+
+.bar {
+  margin-top: 50px;
+  font-size: 14pt;
+  text-align: center;
+}
+
+.bar a {
+  text-decoration: none;
+  color: black;
+  background: #996633;
+  padding: 5px 15px 5px 15px;
+  border: 2px solid #604020;
+}
+
+#step-counter {
+  width: 15%;
+  display: inline-block;
 }
