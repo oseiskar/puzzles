@@ -59,18 +59,6 @@ QUnit.test( "red partial solution", function( assert ) {
   assert.equal(solver.heuristic(), 0, 'final solution has heuristic 0');
 });
 
-QUnit.test( "piece 1 partial solution", function( assert ) {
-
-  var subproblem = (new PuzzleSolver(new PuzzleModel())).pieceIdSubproblem(1);
-  assert.ok(subproblem.pieces_by_id[1].length, 6);
-
-  assert.ok(subproblem.heuristic() > 0, 'initial heuristic > 0');
-  var solution = subproblem.solve();
-
-  subproblem.model.moveSequence(solution);
-  assert.equal(subproblem.heuristic(), 0, 'final solution has heuristic 0');
-});
-
 QUnit.test( "all partial color solutions", function( assert ) {
 
   var colors = ['red', 'blue', 'yellow', 'white'];
