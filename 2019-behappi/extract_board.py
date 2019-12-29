@@ -1,11 +1,12 @@
-import sys
+"""
+Find hexagonal puzzle layout from a photo using computer vision
+"""
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 
 def parse_args():
     import argparse
-    p = argparse.ArgumentParser()
+    p = argparse.ArgumentParser(__doc__)
     p.add_argument('input_image')
     p.add_argument('output_image', nargs='?')
     p.add_argument('output_csv', nargs='?')
@@ -22,131 +23,6 @@ def downsize(orig_size, max_width=1280):
 img = cv2.imread(args.input_image)
 img = cv2.resize(img, downsize(img.shape), cv2.INTER_AREA)
 gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-
-def np_fftconvolve(A, B):
-    # https://laurentperrinet.github.io/sciblog/posts/2017-09-20-the-fastest-2d-convolution-in-the-world.html
-    from numpy.fft  import fft2, ifft2
-    return np.real(ifft2(fft2(A)*fft2(B, s=A.shape)))
-
-def convolve_image(gray):
-    #gray = 255-gray
-    gray = cv2.Canny(gray,50,150,apertureSize = 3)
-
-    angle = np.pi/180*50
-
-    kernel_w = 10
-    kernel_coord = np.arange(-kernel_w, kernel_w+1)/float(kernel_w)
-
-    kx = kernel_coord[np.newaxis,:]
-    ky = kernel_coord[:,np.newaxis]
-    kernel_r = np.sqrt(kx**2 + ky**2)
-    sa = 0.1
-    sb = 1.5
-    kernel = np.exp(-0.5*((np.cos(angle) * kx + np.sin(angle) * ky)**2 / sa**2 + kernel_r / sb**2))
-    kernel = kernel * (kernel_r <= 1.0)
-    kernel = kernel / np.sum(kernel)
-    #kernel = kernel*255
-
-    #plt.imshow(kernel)
-    #plt.show()
-
-    return np_fftconvolve(gray, kernel)
-
-def my_line_transform(gray, angle_resolution=np.pi/180.0, x_resolution=1.0):
-    angle = 0 #np.pi/10
-    outimg = cv2.cvtColor(gray*0, cv2.COLOR_GRAY2BGR)
-
-    #np.cos(angle) * x + np.sin(angle) = rho
-    #x = (rho - np.sin(angle) * x) / np.cos(angle) = rhop - np.tan(angle)*x
-
-    t = np.tan(angle)
-    #offs = 100
-    y = np.arange(gray.shape[0])
-
-    for offs in range(100, 200)[::10]:
-        x = (offs - t*y).astype(int)
-        for i in range(len(x)):
-            xx = x[i]
-            if xx >= 0 and xx <= gray.shape[1]:
-                outimg[y[i], x[i]] = 255
-
-    return outimg
-
-def hough_lines(gray):
-    edges = cv2.Canny(gray,50,150,apertureSize = 3)
-
-    #t0 = 100
-    #coeff = 2
-    #t1 = int(255/coeff)
-    #edges = np.minimum(np.maximum((255-gray), t0) - t0, t1)*coeff
-
-    #outimg = img
-    outimg = edges
-    outimg = cv2.cvtColor(outimg, cv2.COLOR_GRAY2BGR)
-
-    lines = cv2.HoughLines(edges,1,np.pi/180, 30)
-    if lines is None: lines = []
-    lines = lines[:30]
-    for l in lines:
-        for rho,theta in l:
-            a = np.cos(theta)
-            b = np.sin(theta)
-            x0 = a*rho
-            y0 = b*rho
-            x1 = int(x0 + 1000*(-b))
-            y1 = int(y0 + 1000*(a))
-            x2 = int(x0 - 1000*(-b))
-            y2 = int(y0 - 1000*(a))
-
-            cv2.line(outimg,(x1,y1),(x2,y2),(0,0,255),1)
-    return outimg
-
-def corners(gray, max_corners=1500):
-    outimg = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
-    corners = cv2.goodFeaturesToTrack(gray, max_corners, 0.01, 10)
-    corners = np.int0(corners)
-
-    for i in corners:
-        x,y = i.ravel()
-        cv2.circle(outimg, (x,y), 3, (0,0,255), 2)
-
-    return outimg
-
-def initial_hexgrid_slower(cc, thickness=0.3):
-    best_score = 0
-    best_mask = None
-    for c in cc:
-        x0 = np.real(c)
-        y0 = np.imag(c)
-
-        d = np.abs(cc - c)
-        closest = np.argsort(d)
-        for c2 in cc[closest[1:5]]:
-            s = np.abs(c-c2)
-            angle_u = np.angle(c-c2)
-            #score = 0
-            #for c3 in cc:
-            #    score += mask[int(np.imag(c3)), int(np.real(c3))]
-            grid = HexGrid(x0, y0, angle_u, s)
-            score = np.sum(grid.evaluate(cc, thickness))
-            if score > best_score:
-                best_score = score
-                best_mask = grid
-                print('best score %g/%d' % (score, len(cc)))
-    return best_mask
-
-def corners_hex(gray, max_corners=200):
-    #outimg = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
-    corners = cv2.goodFeaturesToTrack(gray, max_corners, 0.01, 10)
-    if corners is None: return gray
-    cc = corners[:,0,0]+corners[:,0,1]*1j
-
-    thickness = 0.3
-    best_mask = initial_hexgrid_slower(cc, thickness)
-
-    best_mask = best_mask.draw(gray, thickness=thickness)
-    outimg = gray * (1.0-best_mask) + best_mask*128
-    return outimg
 
 cmplxdot = lambda p, q: np.real(p)*np.real(q) + np.imag(p)*np.imag(q)
 
@@ -300,7 +176,7 @@ class HexGrid:
                 pix = self.coord2img(uv)
                 yield(uv, self.image_grid[u - self.min_u, v - self.min_v], pix)
 
-def initial_hexgrid_fast(cc):
+def fit_initial_hexgrid(cc):
     dists = []
     angles = []
 
@@ -380,7 +256,7 @@ def find_grid(gray, max_corners=1500, visualize=True):
     cc = corners[:,0,0]+corners[:,0,1]*1j
 
     print('initial hexgrid')
-    grid = initial_hexgrid_fast(cc)
+    grid = fit_initial_hexgrid(cc)
     #grid = initial_hexgrid_slower(cc)
 
     print('fitting displacement field')
@@ -418,98 +294,14 @@ def find_grid(gray, max_corners=1500, visualize=True):
 
     return grid, outimg
 
-def tiled_hough_lines(gray):
-    h, w = gray.shape
-    #edges = gray #255 - gray
-    #edges = cv2.Canny(gray,50,150,apertureSize = 3)
-
-    #outimg = edges
-    outimg = gray*0 #cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
-
-    nx = 3*2 #4
-    ny = 4*2 #4
-    tx = w // nx
-    ty = h // ny
-
-    for iy in range(ny):
-        sy = slice(iy*ty, (iy+1)*ty)
-        for ix in range(nx):
-
-            #if iy < 4 or ix < 2: continue
-
-            sx = slice(ix*tx, (ix+1)*tx)
-            #outimg[sy, sx] = hough_lines(gray[sy, sx])
-            #radon_transform(gray[sy, sx])
-            outimg[sy, sx] = corners_hex(gray[sy, sx])
-
-    return outimg
-
-def radon_transform(image):
-    #image = cv2.Canny(image, 50, 150, apertureSize = 3)
-    #image = 255-image
-
-    t0 = 100
-    coeff = 2
-    t1 = int(255/coeff)
-    image = np.minimum(np.maximum((255-image), t0) - t0, t1)*coeff
-
-    plt.imshow(image)
-    plt.show()
-
-    from skimage.transform import radon
-    theta = np.linspace(0., 180., max(image.shape), endpoint=False)
-    sinogram = radon(image, theta=theta, circle=False)
-
-    sinogram = sinogram**2
-    w = sinogram.shape[1]
-    b = w//3
-    w23 = 2*w//3
-    result = sinogram[:, :b] + sinogram[:, b:(2*b)] + sinogram[:, w23:(w23+b)]
-
-    b = result.shape[0]//10
-    p = []
-    for i in range(10):
-        sc = result[(i*b):((i+1)*b),:]
-        sc = np.max(sc, axis=0)
-        if i == 0:
-            p = sc
-        else:
-            p += sc
-
-
-    #result = sinogram**2
-    #for th in range(sinogram.shape[1]):
-    #    result[th] =
-
-    plt.imshow(result)
-    plt.show()
-
-    #p = np.max(result, axis=0)
-    plt.plot(p)
-    plt.show()
-
-    return sinogram
-
-def segmentation(gray):
-    #thr, binary = cv2.threshold(gray,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
-    #binary = (gray > 140) * 255
-
+def extract_board(gray):
     binary = cv2.adaptiveThreshold(gray,255,\
         cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,201, 20)
 
     kernel = np.ones((3,3), np.uint8)
     opening = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel, iterations = 2)
 
-    #dist_transform = cv2.distanceTransform(opening, cv2.DIST_L2, 5)
-    #dist_threshold = 3
-    #_, foreground = cv2.threshold(dist_transform, dist_threshold, 255, 0)
-    #return foreground
-
-    #_, markers = cv2.connectedComponents(foreground)
     _, markers = cv2.connectedComponents(opening)
-    #print(ret)
-    #print(markers.shape)
-    #print(np.unique(np.ravel(markers)))
 
     min_w = gray.shape[0] * 0.05
     max_w = gray.shape[0] * 0.5
@@ -524,16 +316,6 @@ def segmentation(gray):
         touches_border = projx[0] or projx[-1] or projy[0] or projy[-1]
         if w < min_w or w > max_w or touches_border:
             markers[match] = 0
-
-    """
-    for itr in range(3):
-        bg = markers == 0
-        for m in np.unique(np.ravel(markers)):
-            if m == 0: continue
-            match = markers == m
-            match = cv2.dilate(match.astype(np.uint8), kernel, iterations=1)
-            markers[match.astype(bool) & bg] = m
-    """
 
     grid, _ = find_grid(gray, max_corners=1500)
     outimg = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
@@ -568,26 +350,7 @@ def segmentation(gray):
 
     return board, outimg
 
-    #return cv2.applyColorMap(((markers * 17) % 256).astype(np.uint8), cv2.COLORMAP_JET)
-    #return (markers == 22) * 255
-
-    #d = cv2.distanceTransform((markers == 23).astype(np.uint8), cv2.DIST_L2, 5)
-    #return (d / d.max())*255
-
-    #return corners_hex((markers == 23).astype(np.uint8) * 255, max_corners=100)
-    #return faster_corners_hex((markers == 23).astype(np.uint8) * 255, max_corners=100)
-
-    #return binary
-
-#outimg = hough_lines(gray)
-#outimg = radon_transform(gray)
-#outimg = tiled_hough_lines(gray)
-#outimg = my_line_transform(gray)
-#outimg = convolve_image(gray)
-#outimg = corners(gray)
-#outimg = corners_hex(gray, max_corners=1500)
-#grid, outimg = find_grid(gray, max_corners=1500)
-board, outimg = segmentation(gray)
+board, outimg = extract_board(gray)
 
 if args.output_image is not None:
     cv2.imwrite(args.output_image, outimg)
