@@ -1,4 +1,14 @@
-![segmentation](segemented.png)
+![segmentation](segmented.png)
+
+Solves this physical hexagonal puzzle by
+
+ 1. Extracting the board layout from a photo using computer vision (OpenCV).
+    Tuned to work with the single included photo but should work with similar
+    photos too.
+
+ 2. Virtually shuffling the pieces
+
+ 3. Finding all solutions using brute force DFS (should take about 1 second)
 
 # Usage
 
